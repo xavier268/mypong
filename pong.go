@@ -3,7 +3,7 @@ package mypong
 import (
 	"fmt"
 	"image/color"
-	"time"
+	"math"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -12,12 +12,16 @@ import (
 
 const XMAX, YMAX = 320, 240 // logical game space dimensions
 
+func init() {
+	ebiten.SetCursorMode(ebiten.CursorModeHidden)
+}
+
 type Pong struct {
 	paddles []*Paddle
 	balls   []*Ball
 	paused  bool
 	score   int
-	start   time.Time
+	ticks   int
 }
 
 func NewPong() *Pong {
@@ -25,6 +29,7 @@ func NewPong() *Pong {
 	p.paddles = append(p.paddles, NewPaddle())
 	p.balls = append(p.balls, NewBall())
 	p.score = 0
+
 	return p
 }
 
@@ -43,9 +48,13 @@ func (p *Pong) Update() error {
 		p.paused = !p.paused
 	}
 
+	UpdateAudioBackground() // sounds even if paused ...
+
 	if p.paused {
 		return nil
 	}
+
+	p.ticks += 1
 
 	for _, paddle := range p.paddles {
 		paddle.Update(p)
@@ -70,13 +79,40 @@ func (p *Pong) Update() error {
 		p.score = p.score + 1
 	}
 
-	// every 10 sec, increase game speed
-	if time.Since(p.start) > 10*time.Second {
-		p.start = time.Now()
+	// every n ticks, increase ball speed
+	if p.ticks%(60*9) == 0 { // 10 sec
+
+		// increase ball speed, adjust paddle height, until a certain speed
 		for _, ball := range p.balls {
-			ball.dx, ball.dy = ball.dx*1.1, ball.dy*1.1
+			if max(math.Abs(float64(ball.dx)), math.Abs(float64(ball.dy))) < 15 {
+				ball.dx = ball.dx * 1.1
+				ball.dy = ball.dy * 1.1
+				paddleHeight = max(3*ball.dx, 3*ball.dy, paddleHeight)
+			}
 		}
-		paddleSpeed = paddleSpeed * 1.1
+	}
+
+	// every n ticks, decrease paddle size
+	if p.ticks%(60*11) == 0 { // 10 sec
+		// change paddle size
+		paddleWidth = paddleWidth * 0.8
+		if paddleWidth <= 12 {
+			paddleWidth = 80
+			paddleColor = color.RGBA{255, 255, 255, 255} // white color
+		} else {
+			paddleColor.B = max(0, paddleColor.B>>1)
+			paddleColor.G = max(0, paddleColor.G>>1)
+		}
+	}
+
+	// every n ticks, forget a few balls
+	if p.ticks%(60*43) == 0 {
+
+		if len(p.balls) > 1 {
+			n := max(1, (len(p.balls) / 2))
+			n = min(n, len(p.balls)-1)
+			p.balls = p.balls[n:]
+		}
 	}
 
 	return nil
@@ -105,6 +141,10 @@ func (p *Pong) Draw(screen *ebiten.Image) {
 
 	if len(p.balls) >= 20 {
 		ebitenutil.DebugPrint(screen, "\n\nYOU LOST !")
+	}
+	if p.score >= 50000 {
+		p.paused = true // game over, no need to draw anything else on screen.
+		ebitenutil.DebugPrint(screen, "\n\nYOU WON !")
 	}
 
 }

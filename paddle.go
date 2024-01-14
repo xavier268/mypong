@@ -8,58 +8,65 @@ import (
 )
 
 var paddleColor = color.RGBA{255, 255, 255, 255} // white color
-var paddleSpeed = float32(3.5)                   // paddle speed
+var paddleWidth float32 = 80                     // paddle width
+var paddleHeight float32 = 2                     // paddle heigh
 
 type Paddle struct {
 	x, y float32 // center
-	w    float32 // width
-	h    float32 // height
 }
 
 // Creates a new default paddle
 func NewPaddle() *Paddle {
 	p := &Paddle{
-		x: XMAX / 2, y: YMAX - 10, w: 40, h: 4,
+		x: XMAX / 2,
+		y: YMAX - 10,
 	}
 	return p
 }
 
 func (paddle *Paddle) Update(p *Pong) error {
 
-	// update position from keys
-	if ebiten.IsKeyPressed(ebiten.KeyNumpad4) {
-		paddle.x -= paddleSpeed
+	// update position from mouse x position
+	X, _ := ebiten.CursorPosition()
+	paddle.x = float32(X)
+	if paddle.x < paddleWidth/2 {
+		paddle.x = paddleWidth / 2
 	}
-	if ebiten.IsKeyPressed(ebiten.KeyNumpad6) {
-		paddle.x += paddleSpeed
+	if paddle.x > XMAX-paddleWidth/2 {
+		paddle.x = XMAX - paddleWidth/2
 	}
-	if paddle.x < paddle.w/2 {
-		paddle.x = paddle.w / 2
+
+	// update y position with time ...
+	if p.ticks%(30) == 0 {
+		paddle.y = max(YMAX/2, paddle.y-0.3)
+		if paddle.y <= YMAX/2+1 { // reset when mid screen is reached
+			paddle.y = YMAX - 10
+		}
 	}
-	if paddle.x > XMAX-paddle.w/2 {
-		paddle.x = XMAX - paddle.w/2
-	}
+
 	return nil
+
 }
 
 // Manage ball/paddle interactions
 func (paddle *Paddle) Collide(p *Pong, b *Ball) {
 
 	// Check if ball is within paddle
-	if b.x > paddle.x-paddle.w/2 && b.x < paddle.x+paddle.w/2 {
+	if b.x > paddle.x-paddleWidth/2 && b.x < paddle.x+paddleWidth/2 {
 
 		// Check if ball is within paddle height
-		if b.y > paddle.y-paddle.h/2 && b.y < paddle.y+paddle.h/2 {
+		if b.y > paddle.y-paddleHeight/2 && b.y < paddle.y+paddleHeight/2 {
 
 			// Reverse ball vertical direction
 			b.dy = -b.dy
+			b.dx = b.dx + (b.x-paddle.x)*paddleWidth/1000. // horizontal speed change with impact position relative to paddle width
 			// increase score
-			p.score = p.score + 5
+			p.score = p.score + 50
 		}
 	}
 
 }
 
 func (paddle *Paddle) Draw(screen *ebiten.Image) {
-	vector.DrawFilledRect(screen, paddle.x-paddle.w/2, paddle.y-paddle.h/2, paddle.w, paddle.h, paddleColor, true)
+	vector.DrawFilledRect(screen, paddle.x-paddleWidth/2, paddle.y-paddleHeight/2, paddleWidth, paddleHeight, paddleColor, true)
 }

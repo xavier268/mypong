@@ -10,19 +10,19 @@ import (
 
 const RADIUS = 2
 
-var ballColor = color.RGBA{255, 255, 255, 255}
-
 type Ball struct {
 	x, y   float32
 	dx, dy float32 // speed per tick
+	color  color.RGBA
 }
 
 func NewBall() *Ball {
 	b := &Ball{
-		x:  XMAX / 2,
-		y:  YMAX / 2,
-		dx: 1.5 * rand.Float32(),
-		dy: 1.2 + rand.Float32(),
+		x:     XMAX / 2,
+		y:     YMAX / 2,
+		dx:    rand.Float32(),
+		dy:    (1.1 + rand.Float32()) / 2.,
+		color: color.RGBA{255, 255, 255, 255},
 	}
 	return b
 }
@@ -41,13 +41,19 @@ func (ball *Ball) Update(p *Pong) error {
 	}
 	if ball.y > YMAX && ball.dy > 0 {
 		ball.dy = -ball.dy
+		PlayAudioBoing()
 		// penalize for letting a ball go out of bounds
-		p.score = p.score - 20
-		// add new ball to the list
-		b2 := NewBall()
-		b2.dx = 1.3*ball.dx + rand.Float32()
-		b2.dy = 1.3*ball.dy + rand.Float32()
-		p.balls = append(p.balls, b2)
+		p.score = p.score - 100
+		// add new ball to the list, based on 50% probability ...
+		if rand.Float32() < 0.5 {
+			b2 := NewBall()
+			b2.dx = 1.1*ball.dx + rand.Float32()
+			b2.dy = 1.1*ball.dy + rand.Float32()
+			b2.color.G = max(0, ball.color.G/2)
+			b2.color.B = max(0, ball.color.B/2)
+			p.balls = append(p.balls, b2)
+		}
+
 	}
 
 	ball.x += ball.dx
@@ -56,5 +62,5 @@ func (ball *Ball) Update(p *Pong) error {
 }
 
 func (ball *Ball) Draw(screen *ebiten.Image) {
-	vector.DrawFilledCircle(screen, ball.x, ball.y, RADIUS, ballColor, true)
+	vector.DrawFilledCircle(screen, ball.x, ball.y, RADIUS, ball.color, true)
 }
