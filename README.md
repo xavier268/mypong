@@ -1,2 +1,2 @@
 # mypong
-The famous pong video game as a way to discover ebiten
+A custumized version of the famous pong video game,  as a practical execise to discover the ebiten go game librairy.
