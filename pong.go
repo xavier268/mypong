@@ -84,10 +84,10 @@ func (p *Pong) Update() error {
 
 		// increase ball speed, adjust paddle height, until a certain speed
 		for _, ball := range p.balls {
-			if max(math.Abs(float64(ball.dx)), math.Abs(float64(ball.dy))) < 15 {
-				ball.dx = ball.dx * 1.1
+			if math.Abs(float64(ball.dy)) < 10 {
+				ball.dx = ball.dx * 1.05
 				ball.dy = ball.dy * 1.1
-				paddleHeight = max(3*ball.dx, 3*ball.dy, paddleHeight)
+				paddleHeight = max(3*ball.dy, paddleHeight)
 			}
 		}
 	}
